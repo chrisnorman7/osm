@@ -1,8 +1,9 @@
 import 'package:backstreets_widgets/screens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
-import '../position_place.dart';
+import '../position_places.dart';
 import '../providers.dart';
 import '../util.dart';
 import '../widgets/copy_list_tile.dart';
@@ -17,7 +18,7 @@ class HomePage extends ConsumerWidget {
   /// Build the widget.
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final provider = ref.watch(currentPlaceProvider);
+    final provider = ref.watch(currentPlacesProvider);
     return provider.when(
       data: getBody,
       error: (final error, final stackTrace) => ErrorScreen(
@@ -29,48 +30,59 @@ class HomePage extends ConsumerWidget {
   }
 
   /// Get the body of the widget.
-  Widget getBody(final PositionPlace positionPlace) {
+  Widget getBody(final PositionPlaces positionPlace) {
     final position = positionPlace.position;
-    final place = positionPlace.place;
+    final places = positionPlace.featureCollection.features;
     final heading = position.heading;
+    final children = [
+      CopyListTile(
+        title: 'Longitude',
+        subtitle: '${position.longitude} °',
+        autofocus: places.isEmpty,
+      ),
+      CopyListTile(title: 'Latitude', subtitle: '${position.latitude} °'),
+      CopyListTile(
+        title: 'Heading',
+        subtitle: heading.isNaN ? 'Unknown' : '${heading.floor()} °',
+      ),
+      CopyListTile(
+        title: 'Accuracy',
+        subtitle: sensibleDistance(position.accuracy),
+      )
+    ];
     return SimpleScaffold(
       title: 'Loaded',
-      body: ListView(
-        children: [
-          CopyListTile(
-            title: 'Place Name',
-            subtitle: place.address.toString(),
-            autofocus: true,
-          ),
-          CopyListTile(
-            title: 'Type',
-            subtitle: place.type,
-          ),
-          CopyListTile(title: 'Category', subtitle: place.category),
-          CopyListTile(title: 'Icon', subtitle: place.icon ?? 'Not Set'),
-          ...[
-            for (final entry
-                in (place.extraTags ?? <String, dynamic>{}).entries)
-              CopyListTile(title: entry.key, subtitle: entry.value.toString())
-          ],
-          CopyListTile(
-            title: 'Latitude',
-            subtitle: position.latitude.toString(),
-            autofocus: true,
-          ),
-          CopyListTile(
-            title: 'Longitude',
-            subtitle: position.longitude.toString(),
-          ),
-          CopyListTile(
-            title: 'Direction',
-            subtitle: heading.isNaN ? 'Unknown' : '${heading.floor()} °',
-          ),
-          CopyListTile(
-            title: 'Accuracy',
-            subtitle: sensibleDistance(position.accuracy),
-          )
-        ],
+      body: ListView.builder(
+        itemBuilder: (final context, final index) {
+          if (index < children.length) {
+            return children[index];
+          }
+          final placeIndex = index - children.length;
+          final place = places[placeIndex];
+          final geometry = place.geometry;
+          final distance = sensibleDistance(
+            Geolocator.distanceBetween(
+              position.latitude,
+              position.longitude,
+              geometry.latitude,
+              geometry.longitude,
+            ),
+          );
+          final bearing = (Geolocator.bearingBetween(
+                    position.latitude,
+                    position.longitude,
+                    geometry.latitude,
+                    geometry.longitude,
+                  ) %
+                  360)
+              .floor();
+          return CopyListTile(
+            autofocus: placeIndex == 0,
+            title: place.name,
+            subtitle: '$distance ($bearing °)',
+          );
+        },
+        itemCount: children.length + places.length,
       ),
     );
   }

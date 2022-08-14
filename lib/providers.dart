@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:osm_nominatim/osm_nominatim.dart';
 
-import 'position_place.dart';
+import 'position_places.dart';
+import 'src/json/feature_list.dart';
+
+/// The dio provider.
+final dioProvider = Provider((final ref) => Dio());
 
 /// The provider for the last known position.
 final lastKnownPositionProvider =
@@ -23,25 +27,49 @@ final locationServiceEnabledProvider =
 final locationServicePermissionsProvider =
     FutureProvider((final ref) => Geolocator.checkPermission());
 
-/// The reverse search provider.
-final reverseSearchProvider = FutureProvider.family<Place, Position>(
-  (final ref, final position) => Nominatim.reverseSearch(
-    lat: position.latitude,
-    lon: position.longitude,
-    addressDetails: true,
-    nameDetails: true,
-    extraTags: true,
-  ),
-);
+/// A class to hold the most recently returned position.
+class _LastKnownPositionNotifier extends StateNotifier<Position?> {
+  /// Create an instance.
+  _LastKnownPositionNotifier() : super(null);
 
-/// The current place provider.
-final currentPlaceProvider = StreamProvider(
-  (final ref) async* {
-    final stream = ref.watch(positionStreamProvider.stream);
-    await for (final position in stream) {
-      final place =
-          await ref.watch(reverseSearchProvider.call(position).future);
-      yield PositionPlace(position: position, place: place);
+  /// Get the position.
+  Position? get actualPosition => state;
+
+  /// Update the current position.
+  set position(final Position position) => state = position;
+}
+
+/// Get the last known position.
+final _lastKnownPositionProvider =
+    StateProvider((final ref) => _LastKnownPositionNotifier());
+
+/// The current places provider.
+final currentPlacesProvider = StreamProvider((final ref) async* {
+  final stream = ref.watch(positionStreamProvider.stream);
+  final oldPositionProvider = ref.watch(_lastKnownPositionProvider);
+  final oldPosition = oldPositionProvider.actualPosition;
+  await for (final newPosition in stream) {
+    if (oldPosition == null ||
+        newPosition.accuracy >
+            Geolocator.distanceBetween(
+              oldPosition.latitude,
+              oldPosition.longitude,
+              newPosition.latitude,
+              newPosition.longitude,
+            )) {
+      oldPositionProvider.position = newPosition;
+      final dio = ref.watch(dioProvider);
+      final url =
+          'https://api.opentripmap.com/0.1/en/places/radius?radius=1000.0&lon=${newPosition.longitude}&lat=${newPosition.latitude}&apikey=5ae2e3f221c38a28845f05b60c1a90594183cebc681ef52514d61395';
+      final response = await dio.get<Map<String, dynamic>>(url);
+      final data = response.data;
+      if (data == null) {
+        throw StateError('$response has no data.');
+      }
+      yield PositionPlaces(
+        position: newPosition,
+        featureCollection: FeatureCollection.fromJson(data),
+      );
     }
-  },
-);
+  }
+});
