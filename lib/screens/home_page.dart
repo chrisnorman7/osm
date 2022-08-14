@@ -1,10 +1,10 @@
 import 'package:backstreets_widgets/screens.dart';
-import 'package:backstreets_widgets/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 
+import '../position_place.dart';
 import '../providers.dart';
+import '../widgets/copy_list_tile.dart';
 import 'error_screen.dart';
 import 'loading_screen.dart';
 
@@ -16,7 +16,7 @@ class HomePage extends ConsumerWidget {
   /// Build the widget.
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final provider = ref.watch(positionStreamProvider);
+    final provider = ref.watch(currentPlaceProvider);
     return provider.when(
       data: getBody,
       error: (final error, final stackTrace) =>
@@ -26,22 +26,42 @@ class HomePage extends ConsumerWidget {
   }
 
   /// Get the body of the widget.
-  Widget getBody(final Position position) => SimpleScaffold(
-        title: 'Loaded',
-        body: ListView(
-          children: [
-            ListTile(
-              autofocus: true,
-              title: const Text('Latitude'),
-              subtitle: Text(position.latitude.toStringAsFixed(2)),
-              onTap: () => setClipboardText(position.latitude.toString()),
-            ),
-            ListTile(
-              title: const Text('Longitude'),
-              subtitle: Text(position.longitude.toStringAsFixed(2)),
-              onTap: () => setClipboardText(position.longitude.toString()),
-            )
+  Widget getBody(final PositionPlace positionPlace) {
+    final position = positionPlace.position;
+    final place = positionPlace.place;
+    return SimpleScaffold(
+      title: 'Loaded',
+      body: ListView(
+        children: [
+          CopyListTile(
+            title: 'Place Name',
+            subtitle: place.address.toString(),
+            autofocus: true,
+          ),
+          CopyListTile(
+            title: 'Type',
+            subtitle: place.type,
+          ),
+          CopyListTile(title: 'Category', subtitle: place.category),
+          CopyListTile(title: 'Icon', subtitle: place.icon ?? 'Not Set'),
+          ...[
+            for (final entry
+                in (place.extraTags ?? <String, dynamic>{}).entries)
+              CopyListTile(title: entry.key, subtitle: entry.value.toString())
           ],
-        ),
-      );
+          CopyListTile(
+            title: 'Latitude',
+            subtitle: position.latitude.toString(),
+            autofocus: true,
+          ),
+          CopyListTile(
+            title: 'Longitude',
+            subtitle: position.longitude.toString(),
+          ),
+          CopyListTile(title: 'OSM Type', subtitle: place.osmType),
+          CopyListTile(title: 'Place ID', subtitle: place.placeId.toString())
+        ],
+      ),
+    );
+  }
 }
