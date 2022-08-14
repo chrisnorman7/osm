@@ -35,12 +35,13 @@ final reverseSearchProvider = FutureProvider.family<Place, Position>(
 );
 
 /// The current place provider.
-final currentPlaceProvider = FutureProvider(
-  (final ref) async {
-    final position = await ref.watch(positionStreamProvider.future);
-    return PositionPlace(
-      position: position,
-      place: await ref.watch(reverseSearchProvider.call(position).future),
-    );
+final currentPlaceProvider = StreamProvider(
+  (final ref) async* {
+    final stream = ref.watch(positionStreamProvider.stream);
+    await for (final position in stream) {
+      final place =
+          await ref.watch(reverseSearchProvider.call(position).future);
+      yield PositionPlace(position: position, place: place);
+    }
   },
 );

@@ -20,8 +20,10 @@ class HomePage extends ConsumerWidget {
     final provider = ref.watch(currentPlaceProvider);
     return provider.when(
       data: getBody,
-      error: (final error, final stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (final error, final stackTrace) => ErrorScreen(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       loading: LoadingScreen.new,
     );
   }
