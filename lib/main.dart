@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     RendererBinding.instance.setSemanticsEnabled(true);
     return ProviderScope(
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'OSM',
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
