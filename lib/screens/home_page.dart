@@ -62,7 +62,7 @@ class HomePage extends ConsumerWidget {
           ),
           CopyListTile(
             title: 'Direction',
-            subtitle: heading.isNaN ? 'Unknown' : heading.floor().toString(),
+            subtitle: heading.isNaN ? 'Unknown' : '${heading.floor()} °',
           ),
           CopyListTile(
             title: 'Accuracy',
