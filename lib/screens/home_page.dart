@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../position_place.dart';
 import '../providers.dart';
+import '../util.dart';
 import '../widgets/copy_list_tile.dart';
 import 'error_screen.dart';
 import 'loading_screen.dart';
@@ -29,6 +30,7 @@ class HomePage extends ConsumerWidget {
   Widget getBody(final PositionPlace positionPlace) {
     final position = positionPlace.position;
     final place = positionPlace.place;
+    final heading = position.heading;
     return SimpleScaffold(
       title: 'Loaded',
       body: ListView(
@@ -58,8 +60,14 @@ class HomePage extends ConsumerWidget {
             title: 'Longitude',
             subtitle: position.longitude.toString(),
           ),
-          CopyListTile(title: 'OSM Type', subtitle: place.osmType),
-          CopyListTile(title: 'Place ID', subtitle: place.placeId.toString())
+          CopyListTile(
+            title: 'Direction',
+            subtitle: heading.isNaN ? 'Unknown' : heading.floor().toString(),
+          ),
+          CopyListTile(
+            title: 'Accuracy',
+            subtitle: sensibleDistance(position.accuracy),
+          )
         ],
       ),
     );
