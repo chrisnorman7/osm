@@ -1,0 +1,25 @@
+name: osm
+version: 1.0.0+1
+description: Access Open Street Map data.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+environment:
+  sdk: ">=2.19.0-0 <3.0.0"
+
+dependencies:
+  backstreets_widgets: ^0.0.5
+  cupertino_icons: ^1.0.2
+  flutter:
+    sdk: flutter
+  flutter_osm_plugin: ^0.39.0
+  flutter_riverpod: ^1.0.4
+  geolocator: ^9.0.1
+  osm_nominatim: ^2.0.1
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
